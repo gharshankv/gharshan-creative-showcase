@@ -28,3 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project decisions
+- Keep app pages and navigation on TanStack Start's file-based router because the project is built around its route typing and rendering model.
+- Use the generated Lovable Cloud client with row-level policies for portfolio reads and admin writes so public access stays limited to publishable content.
