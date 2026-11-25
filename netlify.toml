@@ -1,0 +1,7 @@
+[build]
+  command = "bun run build"
+  # On Netlify, nitro auto-detects the platform and uses its Netlify preset:
+  # static assets are written to `dist/` and the SSR handler to
+  # `.netlify/functions-internal/server`. (`dist/client` is only produced
+  # inside Lovable's own build environment.)
+  publish = "dist"
