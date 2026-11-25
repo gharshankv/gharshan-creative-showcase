@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { inquirySchema } from "@/lib/inquiry-validation";
+import { toInquiryInsert } from "@/lib/inquiry-submit";
 
 describe("inquiry validation", () => {
   const validInquiry = {
@@ -23,5 +24,17 @@ describe("inquiry validation", () => {
 
   it("accepts a complete valid inquiry", () => {
     expect(inquirySchema.safeParse(validInquiry).success).toBe(true);
+  });
+
+  it("maps contact form fields to the inquiry table and stores blank optional values as null", () => {
+    expect(toInquiryInsert({ ...validInquiry, businessName: "", serviceNeeded: "Landing Pages" })).toEqual({
+      full_name: "Asha Rao",
+      email: "asha@example.com",
+      business_name: null,
+      service_needed: "Landing Pages",
+      budget_range: null,
+      timeline: null,
+      message: "I need a responsive website for my local business.",
+    });
   });
 });

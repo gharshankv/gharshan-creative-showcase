@@ -14,4 +14,12 @@ describe("App routing", () => {
 
     expect(matches.at(-1)?.routeId).not.toBe(rootRouteId);
   });
+
+  it("registers the custom 404 and private admin pages", () => {
+    const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+
+    expect(router.matchRoutes("/404").at(-1)?.routeId).not.toBe(rootRouteId);
+    expect(router.matchRoutes("/admin/login").at(-1)?.routeId).not.toBe(rootRouteId);
+    expect(router.matchRoutes("/admin").at(-1)?.routeId).not.toBe(rootRouteId);
+  });
 });

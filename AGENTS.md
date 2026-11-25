@@ -32,3 +32,4 @@ use the editor.
 ## Project decisions
 - Keep app pages and navigation on TanStack Start's file-based router because the project is built around its route typing and rendering model.
 - Use the generated Lovable Cloud client with row-level policies for portfolio reads and admin writes so public access stays limited to publishable content.
+- Keep admin pages behind client-only route checks and enforce every private read or write with database row policies, because route guards alone do not secure data.

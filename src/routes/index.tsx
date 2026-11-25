@@ -1,7 +1,17 @@
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { PortfolioHome } from "@/components/portfolio/portfolio-home";
+import { getPortfolioData } from "@/lib/portfolio-data.functions";
+import { submitInquiry } from "@/lib/inquiry-submit";
+import { NotFoundPage } from "@/components/not-found-page";
+
+const portfolioQueryOptions = queryOptions({
+  queryKey: ["portfolio", "public"],
+  queryFn: () => getPortfolioData(),
+});
 
 export const Route = createFileRoute("/")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(portfolioQueryOptions),
   head: () => ({
     meta: [
       { title: "GHARSHAN — Websites That Help Small Businesses Grow" },
@@ -19,5 +29,19 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: PortfolioHome,
+  errorComponent: ({ error }) => (
+    <main className="flex min-h-screen items-center justify-center bg-background px-5 text-foreground">
+      <div className="max-w-md text-center">
+        <h1 className="text-2xl font-semibold">The portfolio couldn’t load.</h1>
+        <p className="mt-3 text-sm text-muted-foreground">{error instanceof Error ? error.message : "Please try again shortly."}</p>
+      </div>
+    </main>
+  ),
+  notFoundComponent: () => <NotFoundPage />,
+  component: PortfolioRoute,
 });
+
+function PortfolioRoute() {
+  const { data } = useSuspenseQuery(portfolioQueryOptions);
+  return <PortfolioHome data={data} onInquirySubmit={submitInquiry} />;
+}

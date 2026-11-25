@@ -1,8 +1,8 @@
 # GHARSHAN Portfolio Roadmap
 
-- [ ] Apply the database schema and starter rows, including private admin profiles and the administrator allowlist.
-- [ ] Finish and verify the public portfolio, connected data, project details, 404 route, and inquiry submission.
-- [ ] Build the private admin sign-in and content management screens.
-- [ ] Enable public media access if the workspace owner allows it; verify the live preview and commit the completed work.
+- [x] Apply the portfolio tables, starter content, and admin allowlist.
+- [ ] Connect public portfolio reads and inquiry submission to Lovable Cloud.
+- [ ] Build and verify the private admin sign-in and content management screens.
+- [ ] Add the custom not-found page and verify the app end to end.
 
-**Current blockers:** Credits previously ran out before the database migration, admin screens, and end-to-end checks. The administrator email is gharshankv123@gmail.com; profile storage is requested. Public bucket creation was blocked by workspace policy; storage is private for now.
+**Current blocker:** The allowlisted administrator needs an Auth account for gharshankv123@gmail.com before sign-in can be tested; public sign-up remains disabled.
