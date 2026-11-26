@@ -1,0 +1,13 @@
+# GHARSHAN Studio Website Refinement
+
+## Scope
+- Keep the existing TanStack routes, Lovable Cloud data, authentication, admin dashboard, content, and deployment setup.
+- Apply the requested light palette and keep public navigation to Home, Services, Projects, and Contact. Remove About and Toolkit; retain other existing content and records.
+- Replace service cards with a numbered list and project thumbnails with numbered editorial entries. Preserve service details, filters, project detail dialogs, screenshots inside details, technologies, and external links.
+- Add profile-photo upload, preview, replace, and remove controls within existing Admin settings. Reuse the private `portfolio-media` bucket and `site_settings` profile value; keep all other media private.
+- Keep inquiry storage and admin review connected to the existing backend, and verify the changed pages at desktop and mobile sizes.
+
+## Technical approach
+- Update semantic color tokens in `src/styles.css`; update the existing portfolio and admin components without introducing new frameworks or replacing the current dashboard.
+- Store uploaded profile images under `profile/` in the existing private bucket. Add only the storage read permission needed for that folder, keep upload/delete restricted to the administrator, and generate expiring signed links for public display.
+- Do not modify existing database rows or project/service content. Run the existing focused tests and verify the live preview; admin-only actions require an available administrator session and the user's portrait for upload verification.
