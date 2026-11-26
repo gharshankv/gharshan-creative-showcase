@@ -8,6 +8,13 @@
       "when": 1795507537257,
       "tag": "0000_create_gharshan_portfolio_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795657320676,
+      "tag": "0001_allow_profile_photo_storage",
+      "breakpoints": true
     }
   ]
 }
