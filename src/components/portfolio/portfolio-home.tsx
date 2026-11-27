@@ -3,23 +3,17 @@ import {
   ArrowDown,
   ArrowRight,
   ArrowUpRight,
-  BadgeCheck,
-  Building2,
-  Check,
-  ChevronRight,
   Code2,
   ExternalLink,
   Github,
-  Globe2,
   Layers3,
   Linkedin,
   Mail,
   Menu,
-  PanelsTopLeft,
-  RefreshCw,
   Send,
   Smartphone,
   Sparkles,
+  UserRound,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -48,9 +42,7 @@ import { defaultPortfolioData } from "@/lib/portfolio-content";
 const navigation = [
   { label: "Home", id: "home" },
   { label: "Services", id: "services" },
-  { label: "Work", id: "work" },
-  { label: "Journey", id: "journey" },
-  { label: "About", id: "about" },
+  { label: "Projects", id: "work" },
   { label: "Contact", id: "contact" },
 ];
 
@@ -63,13 +55,6 @@ const budgetOptions = [
   "₹75,000+ / $1,000+",
   "Not sure yet",
 ];
-
-const serviceIcons: Record<string, LucideIcon> = {
-  Building2,
-  PanelsTopLeft,
-  RefreshCw,
-  Globe2,
-};
 
 type PortfolioHomeProps = {
   data?: PortfolioData;
@@ -97,129 +82,88 @@ function ProfileVisual({ data }: { data: PortfolioData }) {
   useEffect(() => setImageFailed(false), [data.profile.profile_image_url]);
 
   return (
-    <div className="relative mx-auto w-full max-w-[390px]">
-      <div className="absolute -left-5 top-8 h-20 w-20 border-l border-t border-primary/30" aria-hidden="true" />
-      <div className="absolute -bottom-4 -right-4 h-20 w-20 border-b border-r border-primary/30" aria-hidden="true" />
-      <div className="relative overflow-hidden rounded-xl border border-border bg-card p-3 shadow-sm">
-        <div className="relative flex aspect-[4/4.5] items-center justify-center overflow-hidden rounded-lg bg-secondary">
-          {data.profile.profile_image_url && !imageFailed ? (
+    <div className="mx-auto w-full max-w-[350px]">
+      <div className="aspect-[4/5] overflow-hidden rounded-lg border border-border bg-secondary">
+        {data.profile.profile_image_url && !imageFailed ? (
             <img
               src={data.profile.profile_image_url}
               alt={data.profile.name}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="h-full w-full object-cover"
               onError={() => setImageFailed(true)}
             />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-5 bg-secondary px-8 text-center">
-              <span className="text-[clamp(5rem,10vw,8rem)] font-semibold leading-none text-primary/80">
-                {initials(data.profile.name)}
-              </span>
-              <span className="max-w-[12rem] text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Independent developer
-              </span>
+            <div role="img" aria-label="Profile photo not yet available" className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-muted-foreground">
+              <UserRound className="size-10" aria-hidden="true" />
+              <span className="text-sm">Profile photo not yet available</span>
             </div>
           )}
-          <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-md border border-border bg-background/95 px-3 py-2 text-xs font-medium text-foreground shadow-sm">
-            <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
-            {data.profile.title}
-          </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 pt-4">
+        <div className="min-w-0">
+          <p className="font-semibold text-foreground">{data.profile.name}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{data.profile.title}</p>
+          <p className="mt-1 text-sm text-muted-foreground">Websites, thoughtfully built.</p>
         </div>
-        <div className="flex items-center justify-between px-2 pb-1 pt-4">
-          <div>
-            <p className="font-semibold text-foreground">{data.profile.name}</p>
-            <p className="mt-1 text-sm text-muted-foreground">Websites, thoughtfully built.</p>
-          </div>
-          <span className="grid size-10 place-items-center rounded-full border border-border text-primary" aria-hidden="true">
-            <ArrowUpRight className="size-4" />
-          </span>
-        </div>
+        <span className="grid size-10 shrink-0 place-items-center rounded-full border border-border text-primary" aria-hidden="true">
+          <ArrowUpRight className="size-4" />
+        </span>
       </div>
     </div>
   );
 }
 
-function ProjectPreview({ title }: { title: string }) {
-  return (
-    <div className="relative flex aspect-[1.7/1] flex-col overflow-hidden border-b border-border bg-secondary p-5">
-      <div className="flex items-center gap-1.5 border-b border-border/80 pb-3" aria-hidden="true">
-        <span className="size-2 rounded-full bg-muted-foreground/35" />
-        <span className="size-2 rounded-full bg-muted-foreground/35" />
-        <span className="size-2 rounded-full bg-muted-foreground/35" />
-        <span className="ml-3 h-2 w-2/5 rounded-sm bg-border" />
-      </div>
-      <div className="grid flex-1 grid-cols-[1fr_0.68fr] gap-4 py-4" aria-hidden="true">
-        <div className="flex flex-col justify-center gap-3">
-          <span className="h-2.5 w-4/5 rounded-sm bg-primary/35" />
-          <span className="h-2 w-3/5 rounded-sm bg-muted-foreground/20" />
-          <span className="h-2 w-2/3 rounded-sm bg-muted-foreground/20" />
-          <span className="mt-2 h-6 w-20 rounded-md bg-primary/15" />
-        </div>
-        <div className="grid place-items-center rounded-md border border-border bg-background/80 text-primary/70">
-          <Layers3 className="size-8" />
-        </div>
-      </div>
-      <span className="sr-only">Preview placeholder for {title}</span>
-    </div>
-  );
-}
-
-function ServiceCard({
+function ServiceRow({
   service,
+  index,
   onDiscuss,
 }: {
   service: PortfolioService;
+  index: number;
   onDiscuss: (serviceName: string) => void;
 }) {
-  const Icon = serviceIcons[service.icon] ?? Globe2;
-
   return (
-    <article className="flex h-full flex-col border-t border-border pt-6">
-      <div className="mb-5 grid size-11 place-items-center rounded-lg border border-border bg-background text-primary">
-        <Icon className="size-5" aria-hidden="true" />
-      </div>
-      <h3 className="text-xl font-semibold leading-snug text-foreground">{service.title}</h3>
-      <p className="mt-3 min-h-[4.5rem] text-sm leading-6 text-muted-foreground">{service.description}</p>
-      <ul className="mt-5 space-y-3 text-sm text-foreground">
+    <article className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-start gap-x-4 border-t border-border py-6 sm:grid-cols-[4rem_minmax(0,1fr)_auto] sm:gap-x-8">
+      <span className="pt-0.5 text-xl font-semibold text-primary sm:text-2xl" aria-label={`Service ${index + 1}`}>
+        {String(index + 1).padStart(2, "0")}
+      </span>
+      <div className="min-w-0">
+        <h3 className="text-lg font-semibold leading-snug text-foreground">{service.title}</h3>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{service.description}</p>
+        {service.features.length ? <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
         {service.features.map((feature) => (
-          <li className="flex items-start gap-2.5" key={feature}>
-            <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-            <span>{feature}</span>
+          <li className="flex items-baseline gap-2" key={feature}>
+            <span className="text-primary" aria-hidden="true">•</span>{feature}
           </li>
         ))}
-      </ul>
-      <Button
-        asChild
-        variant="link"
-        className="mt-auto justify-start gap-2 px-0 pt-7 text-foreground hover:text-primary"
-      >
-        <a href="#contact" onClick={() => onDiscuss(service.title)}>
-          Discuss your project <ArrowRight aria-hidden="true" />
+        </ul> : null}
+      </div>
+      <Button asChild variant="ghost" size="icon" className="mt-0.5 shrink-0">
+        <a href="#contact" aria-label={`Discuss ${service.title}`} onClick={() => onDiscuss(service.title)}>
+          <ArrowUpRight aria-hidden="true" />
         </a>
       </Button>
     </article>
   );
 }
 
-function ProjectCard({
+function ProjectEditorialRow({
   project,
+  index,
   onView,
 }: {
   project: PortfolioProject;
+  index: number;
   onView: (project: PortfolioProject) => void;
 }) {
   const liveUrl = safeWebUrl(project.live_url);
   const githubUrl = safeWebUrl(project.github_url);
 
   return (
-    <article className="overflow-hidden rounded-lg border border-border bg-card">
-      {project.screenshots[0] ? (
-        <div className="aspect-[1.7/1] overflow-hidden border-b border-border bg-secondary">
-          <img src={project.screenshots[0]} alt={`${project.title} preview`} className="h-full w-full object-cover" />
-        </div>
-      ) : (
-        <ProjectPreview title={project.title} />
-      )}
-      <div className="p-5 sm:p-6">
+    <article className="grid gap-4 border-t border-border py-7 sm:grid-cols-[4rem_minmax(0,1fr)_auto] sm:gap-8">
+      <span className="text-2xl font-semibold text-primary sm:text-3xl" aria-label={`Project ${index + 1}`}>
+        {String(index + 1).padStart(2, "0")}
+      </span>
+      <div className="min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
             {project.category}
@@ -229,34 +173,34 @@ function ProjectCard({
             {project.status}
           </span>
         </div>
-        <h3 className="mt-5 text-lg font-semibold text-foreground">{project.title}</h3>
-        <p className="mt-2 min-h-12 text-sm leading-6 text-muted-foreground">{project.description}</p>
-        <div className="mt-4 flex min-h-7 flex-wrap gap-2">
+        <h3 className="mt-3 text-xl font-semibold text-foreground">{project.title}</h3>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{project.description}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
           {project.tech_stack.map((technology) => (
             <span key={technology} className="rounded-md bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
               {technology}
             </span>
           ))}
         </div>
-        <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+      </div>
+      <div className="flex flex-wrap items-center gap-1 sm:justify-end sm:self-center">
           {liveUrl ? (
-            <Button asChild size="sm" variant="outline">
+            <Button asChild size="sm" variant="ghost">
               <a href={liveUrl} target="_blank" rel="noreferrer">
                 <ExternalLink aria-hidden="true" /> Live preview
               </a>
             </Button>
           ) : null}
           {githubUrl ? (
-            <Button asChild size="sm" variant="outline">
+            <Button asChild size="sm" variant="ghost">
               <a href={githubUrl} target="_blank" rel="noreferrer">
                 <Github aria-hidden="true" /> GitHub
               </a>
             </Button>
           ) : null}
-          <Button size="sm" variant="ghost" className="ml-auto" onClick={() => onView(project)}>
-            View details <ChevronRight aria-hidden="true" />
+          <Button size="sm" variant="ghost" onClick={() => onView(project)}>
+            View details <ArrowUpRight aria-hidden="true" />
           </Button>
-        </div>
       </div>
     </article>
   );
@@ -293,16 +237,6 @@ export function PortfolioHome({ data = defaultPortfolioData, onInquirySubmit }: 
         : data.projects.filter((project) => project.category === selectedCategory),
     [data.projects, selectedCategory],
   );
-
-  const groupedTechnologies = useMemo(() => {
-    const grouped = new Map<string, string[]>();
-    for (const technology of data.technologies) {
-      const categoryItems = grouped.get(technology.category) ?? [];
-      categoryItems.push(technology.name);
-      grouped.set(technology.category, categoryItems);
-    }
-    return Array.from(grouped.entries());
-  }, [data.technologies]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -488,9 +422,9 @@ export function PortfolioHome({ data = defaultPortfolioData, onInquirySubmit }: 
                 Practical digital solutions designed to help businesses establish and improve their online presence.
               </p>
             </div>
-            <div className="mt-12 grid gap-8 md:grid-cols-3 md:gap-7">
-              {data.services.map((service) => (
-                <ServiceCard key={service.id} service={service} onDiscuss={handleServiceDiscuss} />
+            <div className="mt-12 border-b border-border">
+              {data.services.map((service, index) => (
+                <ServiceRow key={service.id} service={service} index={index} onDiscuss={handleServiceDiscuss} />
               ))}
             </div>
           </div>
@@ -523,9 +457,9 @@ export function PortfolioHome({ data = defaultPortfolioData, onInquirySubmit }: 
               </div>
             </div>
             {filteredProjects.length ? (
-              <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {filteredProjects.map((project) => (
-                  <ProjectCard key={project.id} project={project} onView={setSelectedProject} />
+              <div className="mt-10 border-b border-border">
+                {filteredProjects.map((project, index) => (
+                  <ProjectEditorialRow key={project.id} project={project} index={index} onView={setSelectedProject} />
                 ))}
               </div>
             ) : (
@@ -565,79 +499,6 @@ export function PortfolioHome({ data = defaultPortfolioData, onInquirySubmit }: 
               <div className="border-l border-border py-2 pl-7 text-sm leading-6 text-muted-foreground">
                 Confirmed milestones will be added as they are ready to share.
               </div>
-            )}
-          </div>
-        </section>
-
-        <section id="about" className="scroll-mt-24">
-          <div className="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20 lg:px-10 lg:py-24">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">About</p>
-              <h2 className="mt-3 text-3xl font-semibold leading-tight text-foreground sm:text-4xl">A Little About Me</h2>
-              <div className="mt-6 space-y-4 text-base leading-7 text-muted-foreground">
-                {data.profile.bio.split(/\n\s*\n/).filter(Boolean).map((paragraph) => (
-                  <p key={paragraph}>{paragraph}</p>
-                ))}
-              </div>
-              <div className="mt-8 flex flex-wrap gap-3">
-                {safeWebUrl(data.contact.github_url) ? (
-                  <Button asChild variant="outline" size="sm">
-                    <a href={safeWebUrl(data.contact.github_url) ?? "#"} target="_blank" rel="noreferrer"><Github aria-hidden="true" /> GitHub</a>
-                  </Button>
-                ) : null}
-                {safeWebUrl(data.contact.linkedin_url) ? (
-                  <Button asChild variant="outline" size="sm">
-                    <a href={safeWebUrl(data.contact.linkedin_url) ?? "#"} target="_blank" rel="noreferrer"><Linkedin aria-hidden="true" /> LinkedIn</a>
-                  </Button>
-                ) : null}
-                {safeWebUrl(data.contact.resume_url) ? (
-                  <Button asChild variant="outline" size="sm">
-                    <a href={safeWebUrl(data.contact.resume_url) ?? "#"} target="_blank" rel="noreferrer"><ArrowDown aria-hidden="true" /> Resume</a>
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-            <div className="grid content-start gap-8 border-t border-border pt-7 sm:grid-cols-2">
-              <div>
-                <div className="mb-4 grid size-10 place-items-center rounded-lg border border-border text-primary"><BadgeCheck className="size-5" aria-hidden="true" /></div>
-                <h3 className="font-semibold text-foreground">Education</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{data.profile.education}</p>
-              </div>
-              <div>
-                <div className="mb-4 grid size-10 place-items-center rounded-lg border border-border text-primary"><Sparkles className="size-5" aria-hidden="true" /></div>
-                <h3 className="font-semibold text-foreground">Areas of interest</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{data.profile.interests}</p>
-              </div>
-              <div className="sm:col-span-2">
-                <div className="mb-4 grid size-10 place-items-center rounded-lg border border-border text-primary"><Check className="size-5" aria-hidden="true" /></div>
-                <h3 className="font-semibold text-foreground">Professional approach</h3>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{data.profile.approach}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="technologies" className="scroll-mt-24 border-y border-border bg-secondary/60">
-          <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:px-10 lg:py-20">
-            <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Toolkit</p>
-              <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">Tools &amp; Technologies</h2>
-            </div>
-            {groupedTechnologies.length ? (
-              <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-                {groupedTechnologies.map(([category, technologies]) => (
-                  <div key={category}>
-                    <h3 className="text-sm font-semibold text-foreground">{category}</h3>
-                    <ul className="mt-4 flex flex-wrap gap-2">
-                      {technologies.map((technology) => (
-                        <li key={technology} className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground">{technology}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-7 text-sm text-muted-foreground">Tools and technologies will be listed as they are confirmed.</p>
             )}
           </div>
         </section>

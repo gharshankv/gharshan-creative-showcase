@@ -2,6 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import {
+  isProfilePhotoStoragePath,
+  PROFILE_PHOTO_BUCKET,
+  PROFILE_PHOTO_SIGNED_URL_SECONDS,
+} from "@/lib/profile-photo";
+import {
   defaultPortfolioData,
   type AvailabilitySettings,
   type ContactSettings,
@@ -89,8 +94,24 @@ export const getPortfolioData = createServerFn({ method: "GET" }).handler(async 
   if (failedResult?.error) throw new Error("Portfolio data is temporarily unavailable.");
 
   const settings = settingsFromRows(settingsResult.data ?? []);
+  let profileImageUrl = settings.profile.profile_image_url;
+  if (profileImageUrl.startsWith("profile/")) {
+    if (!isProfilePhotoStoragePath(profileImageUrl)) {
+      profileImageUrl = "";
+    } else {
+      try {
+        const { data: signedImage, error: signError } = await client.storage
+          .from(PROFILE_PHOTO_BUCKET)
+          .createSignedUrl(profileImageUrl, PROFILE_PHOTO_SIGNED_URL_SECONDS);
+        profileImageUrl = signError ? "" : signedImage.signedUrl;
+      } catch {
+        profileImageUrl = "";
+      }
+    }
+  }
   return {
     ...settings,
+    profile: { ...settings.profile, profile_image_url: profileImageUrl },
     services: (servicesResult.data ?? []).map((service) => ({
       id: service.id,
       title: service.title,

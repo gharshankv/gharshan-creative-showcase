@@ -12,23 +12,41 @@ const portfolioQueryOptions = queryOptions({
 
 export const Route = createFileRoute("/")({
   loader: ({ context }) => context.queryClient.ensureQueryData(portfolioQueryOptions),
-  head: () => ({
-    meta: [
-      { title: "GHARSHAN — Websites That Help Small Businesses Grow" },
-      {
-        name: "description",
-        content:
-          "Freelance web development by Gharshan V: modern, responsive websites and landing pages for small businesses.",
-      },
-      { property: "og:title", content: "GHARSHAN — Freelance Web Developer" },
-      {
-        property: "og:description",
-        content: "Modern, responsive websites and landing pages for small businesses.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: ({ loaderData }) => {
+    const imageUrl = loaderData?.profile.profile_image_url;
+    let secureImageUrl: string | undefined;
+    if (imageUrl) {
+      try {
+        const parsedImageUrl = new URL(imageUrl);
+        if (parsedImageUrl.protocol === "https:") secureImageUrl = parsedImageUrl.href;
+      } catch {
+        secureImageUrl = undefined;
+      }
+    }
+    return {
+      meta: [
+        { title: "GHARSHAN — Websites That Help Small Businesses Grow" },
+        {
+          name: "description",
+          content:
+            "Freelance web development by Gharshan V: modern, responsive websites and landing pages for small businesses.",
+        },
+        { property: "og:title", content: "GHARSHAN — Freelance Web Developer" },
+        {
+          property: "og:description",
+          content: "Modern, responsive websites and landing pages for small businesses.",
+        },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+        ...(secureImageUrl
+          ? [
+              { property: "og:image", content: secureImageUrl },
+              { name: "twitter:image", content: secureImageUrl },
+            ]
+          : []),
+      ],
+    };
+  },
   errorComponent: ({ error }) => (
     <main className="flex min-h-screen items-center justify-center bg-background px-5 text-foreground">
       <div className="max-w-md text-center">

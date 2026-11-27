@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -6,11 +6,13 @@ import {
   Check,
   ClipboardList,
   ExternalLink,
+  ImagePlus,
   LogOut,
   Pencil,
   Plus,
   Settings2,
   Trash2,
+  UserRound,
   Waypoints,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +23,14 @@ import {
   serviceAdminSchema,
 } from "@/lib/admin-validation";
 import { defaultPortfolioData } from "@/lib/portfolio-content";
+import {
+  isProfilePhotoStoragePath,
+  PROFILE_PHOTO_BUCKET,
+  PROFILE_PHOTO_MAX_BYTES,
+  PROFILE_PHOTO_SIGNED_URL_SECONDS,
+  profilePhotoObjectPath,
+  profilePhotoValidationError,
+} from "@/lib/profile-photo";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -237,6 +247,8 @@ function SectionHeading({ title, description, action }: { title: string; descrip
 export function AdminDashboard() {
   const { data } = useSuspenseQuery(adminDataQueryOptions);
   const queryClient = useQueryClient();
+  const profile = settingObject(data.settings.find((setting) => setting.key === "profile"));
+  const initialProfilePhotoPath = settingText(profile, "profile_image_url");
   const navigate = useNavigate({ from: "/admin" });
   const [activePanel, setActivePanel] = useState<Panel>("inquiries");
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
@@ -244,9 +256,67 @@ export function AdminDashboard() {
   const [deleteTarget, setDeleteTarget] = useState<{ kind: EditorKind; id: string; title: string } | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [saving, setSaving] = useState(false);
+  const [profilePhotoPath, setProfilePhotoPath] = useState(initialProfilePhotoPath);
+  const [pendingProfilePhoto, setPendingProfilePhoto] = useState<File | null>(null);
+  const [profilePhotoPreviewUrl, setProfilePhotoPreviewUrl] = useState<string | null>(null);
+  const [savedProfilePhotoUrl, setSavedProfilePhotoUrl] = useState("");
+  const [profilePhotoError, setProfilePhotoError] = useState("");
+  const [removeProfilePhoto, setRemoveProfilePhoto] = useState(false);
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
 
   const refreshData = () => queryClient.invalidateQueries({ queryKey: adminDataQueryOptions.queryKey });
   const setFailure = (text: string) => setNotice({ kind: "error", text });
+
+  useEffect(() => {
+    if (!pendingProfilePhoto) {
+      setProfilePhotoPreviewUrl(null);
+      return;
+    }
+    const previewUrl = URL.createObjectURL(pendingProfilePhoto);
+    setProfilePhotoPreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [pendingProfilePhoto]);
+
+  useEffect(() => {
+    let isCurrent = true;
+    if (!profilePhotoPath) {
+      setSavedProfilePhotoUrl("");
+      return () => { isCurrent = false; };
+    }
+    if (!profilePhotoPath.startsWith("profile/")) {
+      setSavedProfilePhotoUrl(profilePhotoPath);
+      return () => { isCurrent = false; };
+    }
+    if (!isProfilePhotoStoragePath(profilePhotoPath)) {
+      setSavedProfilePhotoUrl("");
+      return () => { isCurrent = false; };
+    }
+    void supabase.storage
+      .from(PROFILE_PHOTO_BUCKET)
+      .createSignedUrl(profilePhotoPath, PROFILE_PHOTO_SIGNED_URL_SECONDS)
+      .then(({ data: signedPhoto, error }) => {
+        if (isCurrent) setSavedProfilePhotoUrl(error ? "" : signedPhoto.signedUrl);
+      })
+      .catch(() => {
+        if (isCurrent) setSavedProfilePhotoUrl("");
+      });
+    return () => { isCurrent = false; };
+  }, [profilePhotoPath]);
+
+  const handleProfilePhotoSelection = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+    const validationError = profilePhotoValidationError(file);
+    if (validationError) {
+      setProfilePhotoError(validationError);
+      return;
+    }
+    setProfilePhotoError("");
+    setPendingProfilePhoto(file);
+    setRemoveProfilePhoto(false);
+    setNotice(null);
+  };
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
@@ -390,39 +460,83 @@ export function AdminDashboard() {
     const form = new FormData(event.currentTarget);
     setSaving(true);
     setNotice(null);
-    let value: Record<string, Json>;
-    if (key === "profile") {
-      value = {
-        name: String(form.get("name") ?? "").trim(), title: String(form.get("title") ?? "").trim(),
-        tagline: String(form.get("tagline") ?? "").trim(), bio: String(form.get("bio") ?? "").trim(),
-        profile_image_url: String(form.get("profile_image_url") ?? "").trim(), education: String(form.get("education") ?? "").trim(),
-        interests: String(form.get("interests") ?? "").trim(), approach: String(form.get("approach") ?? "").trim(),
-      };
-    } else if (key === "contact") {
-      value = {
-        email: String(form.get("email") ?? "").trim(), whatsapp_url: String(form.get("whatsapp_url") ?? "").trim(),
-        linkedin_url: String(form.get("linkedin_url") ?? "").trim(), github_url: String(form.get("github_url") ?? "").trim(),
-        resume_url: String(form.get("resume_url") ?? "").trim(),
-      };
-    } else {
-      value = {
-        enabled: form.get("enabled") === "on",
-        status_text: String(form.get("status_text") ?? "").trim(),
-      };
-    }
-    const { error } = await supabase.from("site_settings").upsert({ key, value }, { onConflict: "key" });
-    if (error) {
-      setFailure("These settings could not be saved. Check the entries and try again.");
-    } else {
-      setNotice({ kind: "success", text: "Site settings saved." });
+    let uploadedPhotoPath: string | null = null;
+    try {
+      let nextProfilePhotoPath = profilePhotoPath;
+      if (key === "profile" && removeProfilePhoto) {
+        nextProfilePhotoPath = "";
+      } else if (key === "profile" && pendingProfilePhoto) {
+        const path = profilePhotoObjectPath(pendingProfilePhoto.type, crypto.randomUUID());
+        if (!path) throw new Error("Choose a supported profile photo format.");
+        const { error: uploadError } = await supabase.storage.from(PROFILE_PHOTO_BUCKET).upload(path, pendingProfilePhoto, {
+          cacheControl: "3600",
+          contentType: pendingProfilePhoto.type,
+          upsert: false,
+        });
+        if (uploadError) throw new Error("The profile photo could not be uploaded. Please try again.");
+        uploadedPhotoPath = path;
+        nextProfilePhotoPath = path;
+      }
+
+      let value: Record<string, Json>;
+      if (key === "profile") {
+        value = {
+          name: String(form.get("name") ?? "").trim(), title: String(form.get("title") ?? "").trim(),
+          tagline: String(form.get("tagline") ?? "").trim(), bio: String(form.get("bio") ?? "").trim(),
+          profile_image_url: nextProfilePhotoPath, education: String(form.get("education") ?? "").trim(),
+          interests: String(form.get("interests") ?? "").trim(), approach: String(form.get("approach") ?? "").trim(),
+        };
+      } else if (key === "contact") {
+        value = {
+          email: String(form.get("email") ?? "").trim(), whatsapp_url: String(form.get("whatsapp_url") ?? "").trim(),
+          linkedin_url: String(form.get("linkedin_url") ?? "").trim(), github_url: String(form.get("github_url") ?? "").trim(),
+          resume_url: String(form.get("resume_url") ?? "").trim(),
+        };
+      } else {
+        value = {
+          enabled: form.get("enabled") === "on",
+          status_text: String(form.get("status_text") ?? "").trim(),
+        };
+      }
+
+      const { error } = await supabase.from("site_settings").upsert({ key, value }, { onConflict: "key" });
+      if (error) throw new Error("These settings could not be saved. Check the entries and try again.");
+
+      let photoCleanupWarning = false;
+      if (key === "profile" && isProfilePhotoStoragePath(profilePhotoPath) && profilePhotoPath !== nextProfilePhotoPath) {
+        const { error: removeError } = await supabase.storage.from(PROFILE_PHOTO_BUCKET).remove([profilePhotoPath]);
+        photoCleanupWarning = Boolean(removeError);
+      }
+      if (key === "profile") {
+        setProfilePhotoPath(nextProfilePhotoPath);
+        setPendingProfilePhoto(null);
+        setRemoveProfilePhoto(false);
+        setProfilePhotoError("");
+      }
+      setNotice({
+        kind: "success",
+        text: photoCleanupWarning
+          ? "Settings saved, but the previous photo could not be removed."
+          : "Site settings saved.",
+      });
       await refreshData();
+    } catch (error) {
+      if (uploadedPhotoPath) {
+        try {
+          await supabase.storage.from(PROFILE_PHOTO_BUCKET).remove([uploadedPhotoPath]);
+        } catch {
+          // Keep the settings error visible even if upload cleanup is unavailable.
+        }
+      }
+      setFailure(error instanceof Error ? error.message : "These settings could not be saved. Please try again.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
-  const profile = settingObject(data.settings.find((setting) => setting.key === "profile"));
   const contact = settingObject(data.settings.find((setting) => setting.key === "contact"));
   const availability = settingObject(data.settings.find((setting) => setting.key === "availability"));
+  const activeProfilePhotoUrl = removeProfilePhoto ? "" : profilePhotoPreviewUrl || savedProfilePhotoUrl;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -523,11 +637,53 @@ export function AdminDashboard() {
               <section className="border-b border-border pb-8">
                 <h3 className="text-lg font-semibold">Profile</h3>
                 <form className="mt-5 grid gap-4 sm:grid-cols-2" onSubmit={(event) => void handleSettingsSave(event, "profile")}>
+                  <div className="sm:col-span-2">
+                    <div className="grid gap-4 border-b border-border pb-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
+                      {activeProfilePhotoUrl ? (
+                        <img src={activeProfilePhotoUrl} alt="Profile photo preview" className="aspect-[3/4] w-28 rounded-md border border-border object-cover" />
+                      ) : (
+                        <div role="img" aria-label="Profile photo not yet available" className="grid aspect-[3/4] w-28 place-items-center rounded-md border border-border bg-secondary text-muted-foreground">
+                          <UserRound className="size-8" aria-hidden="true" />
+                        </div>
+                      )}
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="text-sm font-semibold">Profile photograph</h4>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            JPEG, PNG, WebP, or AVIF · up to {PROFILE_PHOTO_MAX_BYTES / (1024 * 1024)} MB
+                          </p>
+                        </div>
+                        <input
+                          ref={profilePhotoInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/avif"
+                          className="sr-only"
+                          aria-label="Choose profile photo"
+                          onChange={handleProfilePhotoSelection}
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <Button type="button" variant="outline" size="sm" onClick={() => profilePhotoInputRef.current?.click()}>
+                            <ImagePlus aria-hidden="true" /> {pendingProfilePhoto ? "Choose another photo" : profilePhotoPath ? "Replace photo" : "Upload photo"}
+                          </Button>
+                          {(profilePhotoPath || pendingProfilePhoto) && !removeProfilePhoto ? (
+                            <Button type="button" variant="ghost" size="sm" onClick={() => { setPendingProfilePhoto(null); setRemoveProfilePhoto(true); }}>
+                              <Trash2 aria-hidden="true" /> Remove photo
+                            </Button>
+                          ) : null}
+                          {removeProfilePhoto ? (
+                            <Button type="button" variant="ghost" size="sm" onClick={() => setRemoveProfilePhoto(false)}>
+                              Keep current photo
+                            </Button>
+                          ) : null}
+                        </div>
+                        {profilePhotoError ? <p role="alert" className="text-sm text-destructive">{profilePhotoError}</p> : null}
+                      </div>
+                    </div>
+                  </div>
                   <div className="space-y-2"><Label htmlFor="profile-name">Name</Label><Input id="profile-name" name="name" defaultValue={settingText(profile, "name", defaultPortfolioData.profile.name)} required maxLength={120} /></div>
                   <div className="space-y-2"><Label htmlFor="profile-title">Title</Label><Input id="profile-title" name="title" defaultValue={settingText(profile, "title", defaultPortfolioData.profile.title)} required maxLength={120} /></div>
                   <div className="space-y-2 sm:col-span-2"><Label htmlFor="profile-tagline">Tagline</Label><Input id="profile-tagline" name="tagline" defaultValue={settingText(profile, "tagline", defaultPortfolioData.profile.tagline)} maxLength={200} /></div>
                   <div className="space-y-2 sm:col-span-2"><Label htmlFor="profile-bio">About</Label><Textarea id="profile-bio" name="bio" defaultValue={settingText(profile, "bio", defaultPortfolioData.profile.bio)} rows={5} maxLength={4000} /></div>
-                  <div className="space-y-2"><Label htmlFor="profile-image">Profile image address</Label><Input id="profile-image" name="profile_image_url" type="url" defaultValue={settingText(profile, "profile_image_url")} /></div>
                   <div className="space-y-2"><Label htmlFor="profile-education">Education</Label><Input id="profile-education" name="education" defaultValue={settingText(profile, "education", defaultPortfolioData.profile.education)} maxLength={300} /></div>
                   <div className="space-y-2"><Label htmlFor="profile-interests">Areas of interest</Label><Input id="profile-interests" name="interests" defaultValue={settingText(profile, "interests", defaultPortfolioData.profile.interests)} maxLength={500} /></div>
                   <div className="space-y-2"><Label htmlFor="profile-approach">Professional approach</Label><Input id="profile-approach" name="approach" defaultValue={settingText(profile, "approach", defaultPortfolioData.profile.approach)} maxLength={500} /></div>
